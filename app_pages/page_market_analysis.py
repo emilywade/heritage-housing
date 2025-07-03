@@ -61,30 +61,56 @@ def page_market_analysis_body():
     
     
     st.info(
-        f"**Key Observations:**\n\n"
-        f"- **OverallQual** has the strongest positive correlation with **SalePrice**, meaning that houses with better overall quality ratings tend to sell for significantly higher prices.\n"
-        f"- **TotalSF** (Total Square Footage) is also strongly positively correlated with **SalePrice**, indicating that larger houses generally command higher prices.\n"
-        f"- **HouseAge** shows an inverse relationship with **SalePrice**, suggesting that newer houses tend to be more expensive, while older houses typically have lower sale prices."
+        f"**Key Variable Insights:**\n\n"
+        f"- **OverallQual**: Homes with consistently superior overall quality achieve higher sale prices.\n\n"
+        f"- **TotalSF**: Larger total living area (including basement) is strongly linked to higher sale prices.\n\n"
+        f"- **KitchenQual**: Higher kitchen quality ratings predict higher sale prices. This suggests kitchen condition is a major factor for buyers.\n\n"
+        f"- **GrLivArea**: Larger above-ground living spaces are strongly correlated with higher prices, but are slightly less uniquely predictive than total size.\n\n"
+        f"- **GarageArea**: Larger garages increase home value. However, garage space appears less important to price than overall living area.\n\n"
+        f"- **HouseAge**: Newer houses generally sell for more. Age is negatively related to price.\n\n"
+        f"- **RemodAge**: Homes that have been more recently remodeled tend to achieve higher sale prices."
     )
-    
 
+    
     # correlation matrix
     if st.checkbox("Correlation Matrix"):
-        corr = df_cleaned[num_vars + ['SalePrice']].corr()
-        threshold = 0.0
-        mask = np.abs(corr) < threshold
-        fig, ax = plt.subplots(figsize=(8, 6))
-        sns.heatmap(corr, annot=True, cmap='coolwarm', fmt=".2f", mask=mask, cbar=True, ax=ax)
-        plt.title(f"Correlation Matrix")
-        st.pyplot(fig)
-    
-    
+        plot_corr_matrix(df_cleaned, num_vars)
 
     # numerical variable plots
     if st.checkbox("SalePrice vs Numerical Variables"):
-        for var in num_vars:
-            fig, ax = plt.subplots(figsize=(8, 5))
-            sns.scatterplot(x=var, y='SalePrice', data=df_cleaned, ax=ax)
-            sns.regplot(x=var, y='SalePrice', data=df_cleaned, scatter=False, color='red', ax=ax)
-            plt.title(f'SalePrice vs {var}')
-            st.pyplot(fig)
+        plot_numerical_vars(df_cleaned, num_vars)
+
+    # categorical variable plots
+    if st.checkbox("SalePrice vs Categorical Variables"):
+        plot_categorical_vars(df_cleaned, cat_vars, target='SalePrice')
+
+    
+
+def plot_corr_matrix(df, num_vars):
+    corr = df[num_vars + ['SalePrice']].corr()
+    threshold = 0.0
+    mask = np.abs(corr) < threshold
+    fig, ax = plt.subplots(figsize=(8, 6))
+    sns.heatmap(corr, annot=True, cmap='coolwarm', fmt=".2f", mask=mask, cbar=True, ax=ax)
+    plt.title(f"Correlation Matrix")
+    st.pyplot(fig)
+    
+    
+def plot_numerical_vars(df, num_vars):
+    for var in num_vars:
+        fig, ax = plt.subplots(figsize=(8, 5))
+        sns.scatterplot(x=var, y='SalePrice', data=df, ax=ax)
+        sns.regplot(x=var, y='SalePrice', data=df, scatter=False, color='red', ax=ax)
+        plt.title(f'SalePrice vs {var}')
+        st.pyplot(fig)
+
+def plot_categorical_vars(df, cat_vars, target='SalePrice'):
+    for col in cat_vars:
+        median_order = df.groupby(col)[target].median().sort_values()
+        order = list(median_order.index)
+
+        fig, ax = plt.subplots(figsize=(10, 5))
+        sns.boxplot(x=col, y=target, data=df, order=order, ax=ax)
+        ax.set_title(f"{target} Distribution by {col} (ordered by median)")
+        ax.tick_params(axis='x', rotation=45)
+        st.pyplot(fig)
