@@ -23,6 +23,51 @@ def summarize_data(df, numeric_cols, categorical_cols):
     return summary_series
 
 
+def create_summary_with_prices(df_inherited, df_market, expected_features):
+    numeric_cols = df_market.select_dtypes(include='number').columns.intersection(expected_features).tolist()
+    categorical_cols = df_market.select_dtypes(include='object').columns.intersection(expected_features).tolist()
+
+    market_summary = summarize_data(df_market, numeric_cols, categorical_cols)
+    inherited_summary = summarize_data(df_inherited, numeric_cols, categorical_cols)
+
+    market_avg_price = df_market['SalePrice'].mean() if 'SalePrice' in df_market else None
+    inherited_avg_price = df_inherited['Predicted_SalePrice'].mean()
+
+    property_names = df_inherited['Property'].tolist()
+
+    summary_df = pd.concat([market_summary, inherited_summary], axis=1)
+    summary_df.columns = ['Market Average', 'Inherited Average']
+
+    prop_data = df_inherited[expected_features].copy()
+    prop_data['Property'] = property_names
+    prop_summary = prop_data.set_index('Property').T
+
+    final_df = pd.concat([summary_df, prop_summary], axis=1)
+
+    sale_price_values_numeric = [market_avg_price, inherited_avg_price] + list(df_inherited['Predicted_SalePrice'])
+    sale_price_series = pd.Series(data=sale_price_values_numeric, index=final_df.columns, name='Predicted Sale Price')
+    final_df = pd.concat([sale_price_series.to_frame().T, final_df])
+    final_df.index = final_df.index.astype(str) 
+
+    def format_value(val):
+        if pd.isna(val):
+            return val
+        if isinstance(val, (int, float, np.number)):
+            return f"{val:,.2f}"
+        return val
+
+    formatted_df = final_df.applymap(format_value)
+
+    formatted_df.loc['Predicted Sale Price'] = formatted_df.loc['Predicted Sale Price'].apply(
+        lambda v: f"${v}" if pd.notnull(v) else v
+    )
+    styled_df = formatted_df.style
+
+    return styled_df
+
+
+
+
 def page_house_price_predictor_body():
 
     version = 'v1'  
@@ -86,27 +131,8 @@ def page_house_price_predictor_body():
 
         st.write("---")
 
-        numeric_cols = df_market.select_dtypes(include='number').columns.intersection(expected_features).tolist()
-        categorical_cols = df_market.select_dtypes(include='object').columns.intersection(expected_features).tolist()
+        styled_summary = create_summary_with_prices(df_inherited, df_market, expected_features)
 
-        market_summary = summarize_data(df_market, numeric_cols, categorical_cols)
-        market_summary.name = 'Market Average'
-
-        inherited_summary = summarize_data(df_inherited, numeric_cols, categorical_cols)
-        inherited_summary.name = 'Inherited Average'
-
-        inherited_props = df_inherited[numeric_cols + categorical_cols].copy()
-        inherited_props = inherited_props.reset_index(drop=True)
-        inherited_props.columns = numeric_cols + categorical_cols
-
-        inherited_props = inherited_props.T
-        inherited_props.columns = [f"Property {i+1}" for i in range(inherited_props.shape[1])]
-
-        combined_summary = pd.concat([
-            market_summary,
-            inherited_summary,
-            inherited_props
-        ], axis=1)
 
         st.write("### Combined Summary Table")
         st.info(
@@ -116,4 +142,14 @@ def page_house_price_predictor_body():
             f"* House age is somewhat younger on average, which likely rises the sale price of the inherited properties.\n"
             f"* Individual properties vary notably, showing diversity in size and layout (e.g., presence or absence of second floors)."
         )
-        st.dataframe(combined_summary)
+        st.dataframe(styled_summary)
+        st.info(
+            f"Comments on Predicted Prices:\n"
+            f"* Property 1: low predicted price due to very small living space, no second floor, and high age.\n"
+            f"* Property 2: despite large lot and better condition, lack of second floor and old age keep price"
+             f" moderate — slightly higher than Property 1.\n"
+            f"* Property 3: higher price driven by large size, newer age, and second floor. even though quality is slightly "
+             f"lower.\n"
+            f"* Property 4: large size and new age push price up, but smaller lot and other possible features keep it "
+            f"slightly below Property 3.\n"
+        )
