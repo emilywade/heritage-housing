@@ -79,6 +79,10 @@ def page_house_price_predictor_body():
 
     st.write("### House Price Prediction")
     st.info(
+        f"The client is interested in predicting the sale price of their inherited properties, "
+        f"as well as any other property in the area."
+    )
+    st.info(
         "* Choose whether to predict prices for inherited houses or to enter your own custom house data below."
     )
 
