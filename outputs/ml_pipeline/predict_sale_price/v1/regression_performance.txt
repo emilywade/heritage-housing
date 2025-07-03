@@ -1,0 +1,16 @@
+Model Evaluation 
+
+* Train Set
+R2 Score: 0.871
+Mean Absolute Error: 0.103
+Mean Squared Error: 0.021
+Root Mean Squared Error: 0.144
+
+
+* Test Set
+R2 Score: 0.794
+Mean Absolute Error: 0.109
+Mean Squared Error: 0.031
+Root Mean Squared Error: 0.177
+
+
