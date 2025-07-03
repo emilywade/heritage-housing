@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 from src.data_management import load_pkl_file
 
 def page_house_price_predictor_body():
@@ -37,5 +38,26 @@ def page_house_price_predictor_body():
 
         # display
         st.success("Predictions generated successfully!")
-        st.write(df_inherited.head(10))
+        
+        st.metric("Min Predicted Sale Price", f"${df_inherited['Predicted_SalePrice'].min():,.0f}")
+        st.metric("Max Predicted Sale Price", f"${df_inherited['Predicted_SalePrice'].max():,.0f}")
+        st.metric("Average Predicted Sale Price", f"${df_inherited['Predicted_SalePrice'].mean():,.0f}")
 
+
+        df_inherited = df_inherited.reset_index(drop=True)
+        df_inherited['Property'] = [f"Property {i+1}" for i in range(len(df_inherited))]
+
+        fig = px.bar(
+            df_inherited,
+            x='Property',
+            y='Predicted_SalePrice',
+            text='Predicted_SalePrice',
+            labels={'Property': 'Property', 'Predicted_SalePrice': 'Predicted Sale Price ($)'},
+            title='Predicted Sale Prices for Inherited Properties',
+            height=500
+        )
+
+        fig.update_traces(texttemplate='$%{text:,.0f}', textposition='outside')
+        fig.update_layout(yaxis=dict(tickprefix="$"))
+
+        st.plotly_chart(fig)
