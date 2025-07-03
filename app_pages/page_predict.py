@@ -77,79 +77,86 @@ def page_house_price_predictor_body():
 
     df_inherited = pd.read_csv("outputs/datasets/collection/InheritedHouses.csv")
 
-    st.write("### Inherited Houses Price Prediction")
+    st.write("### House Price Prediction")
     st.info(
-        f"* This page allows you to predict the **SalePrice** of inherited houses using your trained model. "
-        f"These predictions are based on pre-processed features and model logic defined during your project.\n\n"
-        f"Below you can inspect the unseen dataset, generate predictions and compare to the rest of the market."
+        "* Choose whether to predict prices for inherited houses or to enter your own custom house data below."
     )
 
-    if st.checkbox("Inspect Inherited Houses Data"):
-        st.write(f"Dataset shape: {df_inherited.shape[0]} rows × {df_inherited.shape[1]} columns")
-        st.write(df_inherited.head(10))
+    prediction_mode = st.radio(
+        "Select prediction mode:",
+        ("Inherited Houses", "Custom House")
+    )
 
-    st.write("---")
+    if prediction_mode == "Inherited Houses":
+        st.subheader("Inherited Houses Price Prediction")
 
-    # run prediction
-    if st.button("Run Price Prediction"):
-        expected_features = pd.read_csv(f"outputs/ml_pipeline/predict_sale_price/{version}/X_train.csv").columns.to_list()
-
-        df_subset = df_inherited[expected_features]
-
-        predictions = price_pipe.predict(df_subset)
-
-        # add predictions to the DataFrame
-        df_inherited['Predicted_SalePrice'] = predictions
-
-        # display
-        st.success("Predictions generated successfully!")
-        
-        st.metric("Min Predicted Sale Price", f"${df_inherited['Predicted_SalePrice'].min():,.0f}")
-        st.metric("Max Predicted Sale Price", f"${df_inherited['Predicted_SalePrice'].max():,.0f}")
-        st.metric("Average Predicted Sale Price", f"${df_inherited['Predicted_SalePrice'].mean():,.0f}")
+        if st.checkbox("Inspect Inherited Houses Data"):
+            st.write(f"Dataset shape: {df_inherited.shape[0]} rows × {df_inherited.shape[1]} columns")
+            st.write(df_inherited.head(10))
 
 
-        df_inherited = df_inherited.reset_index(drop=True)
-        df_market = pd.read_csv(f"outputs/datasets/cleaned/HousingPrices.csv")
+        if st.button("Run Price Prediction"):
+            expected_features = pd.read_csv(f"outputs/ml_pipeline/predict_sale_price/{version}/X_train.csv").columns.to_list()
 
-        df_inherited['Property'] = [f"Property {i+1}" for i in range(len(df_inherited))]
+            df_subset = df_inherited[expected_features]
 
-        fig = px.bar(
-            df_inherited,
-            x='Property',
-            y='Predicted_SalePrice',
-            text='Predicted_SalePrice',
-            labels={'Property': 'Property', 'Predicted_SalePrice': 'Predicted Sale Price ($)'},
-            title='Predicted Sale Prices for Inherited Properties',
-            height=500
-        )
+            predictions = price_pipe.predict(df_subset)
 
-        fig.update_traces(texttemplate='$%{text:,.0f}', textposition='outside')
-        fig.update_layout(yaxis=dict(tickprefix="$"))
+            # add predictions to the DataFrame
+            df_inherited['Predicted_SalePrice'] = predictions
 
-        st.plotly_chart(fig)
-
-        st.write("---")
-
-        styled_summary = create_summary_with_prices(df_inherited, df_market, expected_features)
+            # display
+            st.success("Predictions generated successfully!")
+            
+            st.metric("Min Predicted Sale Price", f"${df_inherited['Predicted_SalePrice'].min():,.0f}")
+            st.metric("Max Predicted Sale Price", f"${df_inherited['Predicted_SalePrice'].max():,.0f}")
+            st.metric("Average Predicted Sale Price", f"${df_inherited['Predicted_SalePrice'].mean():,.0f}")
 
 
-        st.write("### Combined Summary Table")
-        st.info(
-            f"Key Insights:\n"
-            f"* Inherited homes tend to have smaller living spaces but larger lot sizes compared to the average market home.\n"
-            f"* Condition of inherited homes is average or slightly better, but overall quality scores are slightly lower.\n"
-            f"* House age is somewhat younger on average, which likely rises the sale price of the inherited properties.\n"
-            f"* Individual properties vary notably, showing diversity in size and layout (e.g., presence or absence of second floors)."
-        )
-        st.dataframe(styled_summary)
-        st.info(
-            f"Comments on Predicted Prices:\n"
-            f"* Property 1: low predicted price due to very small living space, no second floor, and high age.\n"
-            f"* Property 2: despite large lot and better condition, lack of second floor and old age keep price"
-             f" moderate — slightly higher than Property 1.\n"
-            f"* Property 3: higher price driven by large size, newer age, and second floor. even though quality is slightly "
-             f"lower.\n"
-            f"* Property 4: large size and new age push price up, but smaller lot and other possible features keep it "
-            f"slightly below Property 3.\n"
-        )
+            df_inherited = df_inherited.reset_index(drop=True)
+            df_market = pd.read_csv(f"outputs/datasets/cleaned/HousingPrices.csv")
+
+            df_inherited['Property'] = [f"Property {i+1}" for i in range(len(df_inherited))]
+
+            fig = px.bar(
+                df_inherited,
+                x='Property',
+                y='Predicted_SalePrice',
+                text='Predicted_SalePrice',
+                labels={'Property': 'Property', 'Predicted_SalePrice': 'Predicted Sale Price ($)'},
+                title='Predicted Sale Prices for Inherited Properties',
+                height=500
+            )
+
+            fig.update_traces(texttemplate='$%{text:,.0f}', textposition='outside')
+            fig.update_layout(yaxis=dict(tickprefix="$"))
+
+            st.plotly_chart(fig)
+
+            st.write("---")
+
+            styled_summary = create_summary_with_prices(df_inherited, df_market, expected_features)
+
+
+            st.write("### Combined Summary Table")
+            st.info(
+                f"Key Insights:\n"
+                f"* Inherited homes tend to have smaller living spaces but larger lot sizes compared to the average market home.\n"
+                f"* Condition of inherited homes is average or slightly better, but overall quality scores are slightly lower.\n"
+                f"* House age is somewhat younger on average, which likely rises the sale price of the inherited properties.\n"
+                f"* Individual properties vary notably, showing diversity in size and layout (e.g., presence or absence of second floors)."
+            )
+            st.dataframe(styled_summary)
+            st.info(
+                f"Comments on Predicted Prices:\n"
+                f"* Property 1: low predicted price due to very small living space, no second floor, and high age.\n"
+                f"* Property 2: despite large lot and better condition, lack of second floor and old age keep price"
+                f" moderate — slightly higher than Property 1.\n"
+                f"* Property 3: higher price driven by large size, newer age, and second floor. even though quality is slightly "
+                f"lower.\n"
+                f"* Property 4: large size and new age push price up, but smaller lot and other possible features keep it "
+                f"slightly below Property 3.\n"
+            )
+
+    else:
+        st.subheader("Predict Price for a Custom House")
