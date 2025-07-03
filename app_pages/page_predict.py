@@ -86,7 +86,8 @@ def page_house_price_predictor_body():
         "Select prediction mode:",
         ("Inherited Houses", "Custom House")
     )
-
+    expected_features = pd.read_csv(f"outputs/ml_pipeline/predict_sale_price/{version}/X_train.csv").columns.to_list()
+    
     if prediction_mode == "Inherited Houses":
         st.subheader("Inherited Houses Price Prediction")
 
@@ -96,7 +97,7 @@ def page_house_price_predictor_body():
 
 
         if st.button("Run Price Prediction"):
-            expected_features = pd.read_csv(f"outputs/ml_pipeline/predict_sale_price/{version}/X_train.csv").columns.to_list()
+            
 
             df_subset = df_inherited[expected_features]
 
@@ -160,3 +161,39 @@ def page_house_price_predictor_body():
 
     else:
         st.subheader("Predict Price for a Custom House")
+
+        st.write("Enter your custom house features below:")
+
+        first_flr_sf = st.number_input("1st Floor SF", min_value=0, value=1000)
+        second_flr_sf = st.number_input("2nd Floor SF", min_value=0, value=500)
+        gr_liv_area = st.number_input("Above Ground Living Area", min_value=0, value=1500)
+        lot_area = st.number_input("Lot Area", min_value=0, value=10000)
+        overall_cond = st.slider("Overall Condition", 1, 10, value=5)
+        overall_qual = st.slider("Overall Quality", 1, 10, value=5)
+        house_age = st.number_input("House Age (years)", min_value=0, value=30)
+        total_sf = st.number_input("Total SF", min_value=0, value=2500)
+        above_grade_sf = st.number_input("Above Grade SF", min_value=0, value=1500)
+
+        input_dict = {
+            "1stFlrSF": first_flr_sf,
+            "2ndFlrSF": second_flr_sf,
+            "GrLivArea": gr_liv_area,
+            "LotArea": lot_area,
+            "OverallCond": overall_cond,
+            "OverallQual": overall_qual,
+            "HouseAge": house_age,
+            "TotalSF": total_sf,
+            "AboveGradeSF": above_grade_sf,
+        }
+
+        input_df = pd.DataFrame([input_dict])
+
+        for col in expected_features:
+            if col not in input_df.columns:
+                input_df[col] = 0
+
+        input_df = input_df[expected_features]
+
+        if st.button("Predict Custom House Price"):
+            predicted_price = price_pipe.predict(input_df)[0]
+            st.success(f"🏡 Predicted Sale Price: **${predicted_price:,.2f}**")
